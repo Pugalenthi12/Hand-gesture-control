@@ -1,0 +1,152 @@
+from flask import Flask, jsonify,render_template
+import cv2
+import mediapipe as mp
+import pyautogui
+import time
+import ctypes
+import sys
+
+app = Flask(__name__)
+@app.route('/')
+def index():
+    
+    return "running"
+
+@app.route('/run-script', methods=['POST'])
+def run_script():
+    # Code to execute your Python script
+    # For example, you can use subprocess to call another Python script
+    
+    # Function to hide the cursor (Windows)
+    def hide_cursor():
+        if sys.platform.startswith('win'):
+            while ctypes.windll.user32.ShowCursor(False) >= 0:
+                pass
+
+    # Function to show the cursor (Windows)
+    def show_cursor():
+        if sys.platform.startswith('win'):
+            while ctypes.windll.user32.ShowCursor(True) < 0:
+                pass
+
+    # Initialize MediaPipe Hands
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+
+    # Initialize webcam
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        sys.exit()
+
+    # Variables for tracking mouse click state
+    left_click_held = False
+
+    # Function to detect the gesture based on the position of the landmarks
+    def detect_gesture(hand_landmarks, handedness):
+        thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+        index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+        middle_tip = hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+
+        if handedness.classification[0].label == 'Left':
+            if index_tip.y < thumb_tip.y:
+                return "scroll_up"
+            elif index_tip.y > thumb_tip.y:
+                return "scroll_down"
+        elif handedness.classification[0].label == 'Right':
+            if (index_tip.y < thumb_tip.y) and (middle_tip.y < thumb_tip.y):
+                return "hand_closed"
+            else:
+                return "hand_open"
+        return None
+
+    # Function to move the mouse cursor based on hand movement
+    def move_cursor(hand_landmarks, screen_width, screen_height):
+        index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+        
+        # Map hand position to screen coordinates
+        x = int(index_finger_tip.x * screen_width)
+        y = int(index_finger_tip.y * screen_height)
+        pyautogui.moveTo(x, y)
+
+    try:
+        # Hide the cursor at the start of the script
+        hide_cursor()
+
+        # Main loop
+        with mp_hands.Hands(max_num_hands=2, 
+                            min_detection_confidence=0.7, 
+                            min_tracking_confidence=0.7) as hands:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print("Failed to capture frame from webcam.")
+                    break
+
+                # Flip the frame horizontally for a selfie-view display
+                frame = cv2.flip(frame, 1)
+
+                # Convert the BGR image to RGB
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                # Process the frame and detect hands
+                result = hands.process(rgb_frame)
+
+                # Get screen dimensions
+                screen_width, screen_height = pyautogui.size()
+
+                if result.multi_hand_landmarks and result.multi_handedness:
+                    for hand_landmarks, handedness in zip(result.multi_hand_landmarks, result.multi_handedness):
+                        # Detect gestures
+                        gesture = detect_gesture(hand_landmarks, handedness)
+                        if gesture == "scroll_up":
+                            pyautogui.scroll(1)
+                        elif gesture == "scroll_down":
+                            pyautogui.scroll(-1)
+                        elif gesture == "hand_closed":
+                            if handedness.classification[0].label == 'Right':
+                                if not left_click_held:
+                                    pyautogui.mouseDown(button='left')
+                                    left_click_held = True
+                        elif gesture == "hand_open":
+                            if handedness.classification[0].label == 'Right':
+                                if left_click_held:
+                                    pyautogui.mouseUp(button='left')
+                                    left_click_held = False
+
+                        # Move cursor with right hand
+                        if handedness.classification[0].label == 'Right':
+                            move_cursor(hand_landmarks, screen_width, screen_height)
+
+                        # Draw the hand landmarks on the frame
+                        mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Display the frame
+                cv2.imshow('Hand Gesture Control', frame)
+
+                # Check for any key presses
+                key = cv2.waitKey(1)
+                if key != -1:
+                    print(f"Key pressed: {key}")
+                if key & 0xFF == ord('q'):
+                    break
+
+                # Optionally, sleep to reduce CPU usage
+                time.sleep(0.01)  # Sleep for 10ms between frames
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Show the cursor again at the end of the script
+        show_cursor()
+
+        # Release the webcam and close all OpenCV windows
+        cap.release()
+        cv2.destroyAllWindows()
+        detect_gesture()
+    
+    return "working"
+
+if __name__ == '__main__':
+    app.run(debug=True)
