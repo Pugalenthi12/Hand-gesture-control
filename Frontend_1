@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Object Viewer - Home</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Video background */
+        video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 90%;
+            position: relative;
+            z-index: 1;
+            color: white;
+        }
+
+        /* Logo Container */
+        .logo-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            height: 100px; /* Adjust height as needed */
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .logo-container img {
+            max-height: 100%;
+            width: auto;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .description {
+            font-size: 16px;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #01532a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: #03806b;
+        }
+    </style>
+</head>
+<body>
+    <video autoplay loop muted>
+        <source src="D:\Python projects\gesture\video-3.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    
+    <!-- Logo Container -->
+    <div class="logo-container">
+        <img src="D:\Python projects\gesture\Nobl_Q__logo-removebg-preview (1).png" alt="Company Logo"> <!-- Update the logo path -->
+    </div>
+
+    <div class="container">
+        <div class="title">Welcome to Our 3D Object Viewer</div>
+        <div class="description">Explore and interact with 3D models. Click the button below to upload your 3D object file.</div>
+        <a href="2ndpage.html" class="btn">NEXT</a>
+    </div>
+</body>
+</html>
